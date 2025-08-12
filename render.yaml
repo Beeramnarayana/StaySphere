@@ -7,17 +7,25 @@ services:
       echo "📦 Node version: $(node -v)"
       echo "📦 NPM version: $(npm -v)"
       
-      # Run the build script
-      echo "\n🔄 Running build script..."
-      node build.js
+      # Install root dependencies
+      echo "\n📦 Installing root dependencies..."
+      npm install --legacy-peer-deps
+      
+      # Install and build client
+      echo "\n🔄 Building client..."
+      cd client
+      npm install --legacy-peer-deps
+      npm run build
       
       # Verify build
-      if [ -d "client/build" ]; then
+      if [ -d "build" ]; then
         echo "\n✅ Build verification:"
-        echo "Build directory exists at: $(pwd)/client/build"
-        echo "Contents: $(ls -la client/build/)"
+        echo "Build directory exists at: $(pwd)/build"
+        echo "Contents: $(ls -la build/)"
       else
-        echo "\n❌ Build verification failed: client/build directory not found"
+        echo "\n❌ Build verification failed: build directory not found"
+        echo "Current directory: $(pwd)"
+        echo "Directory contents: $(ls -la)"
         exit 1
       fi
       

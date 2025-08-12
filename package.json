@@ -38,7 +38,7 @@
     "client": "npm start --prefix client",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "build": "npm install && npm run build:client",
-    "build:client": "cd client && npm install --legacy-peer-deps && npm run build",
+    "build:client": "node client/build-client.js",
     "heroku-postbuild": "npm run build:client",
     "render-build": "npm run build:client",
     "install-client": "cd client && npm install --legacy-peer-deps",

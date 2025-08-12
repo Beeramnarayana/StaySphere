@@ -165,41 +165,61 @@ app.use('/api/messages', messagesRoutes);
 
 // Serve static files from React app in production
 if (process.env.NODE_ENV === 'production') {
-  // Set static folder
   const clientBuildPath = path.join(__dirname, 'client', 'build');
-  console.log('Serving static files from:', clientBuildPath);
+  console.log('\n📂 Checking for build directory at:', clientBuildPath);
   
   // Check if client directory exists
   if (!fs.existsSync(path.join(__dirname, 'client'))) {
-    console.error('Client directory not found at:', path.join(__dirname, 'client'));
-    console.log('Current directory contents:', fs.readdirSync(__dirname));
-  }
+    console.error('❌ Client directory not found at:', path.join(__dirname, 'client'));
+    console.log('📁 Current directory contents:', fs.readdirSync(__dirname));
+  } 
   // Check if build directory exists
   else if (!fs.existsSync(clientBuildPath)) {
-    console.error('Build directory not found at:', clientBuildPath);
-    console.log('Client directory contents:', fs.readdirSync(path.join(__dirname, 'client')));
+    console.error('❌ Build directory not found at:', clientBuildPath);
+    console.log('📁 Client directory contents:', fs.readdirSync(path.join(__dirname, 'client')));
     
-    // Try to build the client
-    console.log('Attempting to build client...');
-    try {
-      const { execSync } = require('child_process');
-      execSync('npm run build', { cwd: path.join(__dirname, 'client'), stdio: 'inherit' });
-      console.log('Client build completed successfully');
-    } catch (error) {
-      console.error('Failed to build client:', error);
-    }
-  }
-  
-  // Only serve static files if the build directory exists
-  if (fs.existsSync(clientBuildPath)) {
+    // Provide helpful instructions
+    console.log('\n🔧 To fix this issue, try the following steps:');
+    console.log('1. Run `cd client && npm install && npm run build` locally');
+    console.log('2. Commit the build directory to your repository');
+    console.log('3. Push the changes and redeploy');
+    
+    // Create a simple response for missing build
+    app.get('*', (req, res) => {
+      res.status(500).send(`
+        <html>
+          <head><title>Build Error</title></head>
+          <body>
+            <h1>Frontend Build Missing</h1>
+            <p>The frontend build directory was not found at: ${clientBuildPath}</p>
+            <h3>To fix this issue:</h3>
+            <ol>
+              <li>Run <code>cd client && npm install && npm run build</code> locally</li>
+              <li>Commit the build directory to your repository</li>
+              <li>Push the changes and redeploy</li>
+            </ol>
+            <p>Check the server logs for more details.</p>
+          </body>
+        </html>
+      `);
+    });
+    
+    return;
+  } else {
+    // Build directory exists, serve static files
+    console.log('✅ Found build directory at:', clientBuildPath);
+    console.log('📂 Build directory contents:', fs.readdirSync(clientBuildPath));
+    
+    // Serve static files from the build directory
     app.use(express.static(clientBuildPath, {
       etag: true,
       lastModified: true,
       setHeaders: (res, path) => {
-        if (path.endsWith('.html')) {
-          res.setHeader('Cache-Control', 'no-cache');
-        } else {
+        // Cache static assets for 1 year
+        if (!path.endsWith('.html')) {
           res.setHeader('Cache-Control', 'public, max-age=31536000');
+        } else {
+          res.setHeader('Cache-Control', 'no-cache');
         }
       }
     }));
@@ -209,27 +229,21 @@ if (process.env.NODE_ENV === 'production') {
       const indexPath = path.resolve(clientBuildPath, 'index.html');
       
       if (!fs.existsSync(indexPath)) {
-        console.error('Index.html not found at:', indexPath);
-        return res.status(500).json({ 
-          message: 'Frontend build is incomplete',
-          error: `index.html not found in build directory`,
-          buildDirectoryContents: fs.readdirSync(clientBuildPath).join(', ')
-        });
+        console.error('❌ index.html not found at:', indexPath);
+        return res.status(500).send(`
+          <html>
+            <head><title>Build Error</title></head>
+            <body>
+              <h1>Frontend Build Incomplete</h1>
+              <p>index.html not found in build directory at: ${indexPath}</p>
+              <p>Build directory contents: ${fs.readdirSync(clientBuildPath).join(', ')}</p>
+            </body>
+          </html>
+        `);
       }
       
+      console.log(`🔄 Serving index.html for ${req.path}`);
       res.sendFile(indexPath);
-    });
-  } else {
-    // If we get here, the build directory doesn't exist
-    app.get('*', (req, res) => {
-      res.status(500).json({
-        message: 'Frontend build failed',
-        error: 'The frontend build directory was not found and could not be generated',
-        instructions: 'Please check the build process and ensure the client builds correctly',
-        buildPath: clientBuildPath,
-        currentDirectory: __dirname,
-        directoryContents: fs.readdirSync(__dirname)
-      });
     });
   }
 }

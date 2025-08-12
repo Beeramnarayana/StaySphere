@@ -3,19 +3,25 @@ services:
     name: staysphere
     env: node
     buildCommand: |
-      echo "Starting build process..."
-      echo "Node version: $(node -v)"
-      echo "NPM version: $(npm -v)"
-      
-      # Install root dependencies
-      echo "\n=== Installing root dependencies ==="
-      npm install --legacy-peer-deps
+      echo "🚀 Starting build process..."
+      echo "📦 Node version: $(node -v)"
+      echo "📦 NPM version: $(npm -v)"
       
       # Run the build script
-      echo "\n=== Running build script ==="
-      node client/build.js
+      echo "\n🔄 Running build script..."
+      node build.js
       
-      echo "\n=== Build process completed ==="
+      # Verify build
+      if [ -d "client/build" ]; then
+        echo "\n✅ Build verification:"
+        echo "Build directory exists at: $(pwd)/client/build"
+        echo "Contents: $(ls -la client/build/)"
+      else
+        echo "\n❌ Build verification failed: client/build directory not found"
+        exit 1
+      fi
+      
+      echo "\n🎉 Build process completed successfully!"
       
     startCommand: npm start
     envVars:

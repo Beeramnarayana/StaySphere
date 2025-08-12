@@ -194,10 +194,32 @@ if (process.env.NODE_ENV === 'production') {
     console.log('⚠️  Build directory not found, serving from client/public');
     console.log('📂 Public directory contents:', fs.readdirSync(clientPublicPath));
     
+    // Serve static files from public directory
     app.use(express.static(clientPublicPath, {
       etag: true,
-      lastModified: true
+      lastModified: true,
+      setHeaders: (res, path) => {
+        // Set correct content types for common files
+        if (path.endsWith('.js')) {
+          res.setHeader('Content-Type', 'application/javascript');
+        } else if (path.endsWith('.css')) {
+          res.setHeader('Content-Type', 'text/css');
+        } else if (path.endsWith('.json')) {
+          res.setHeader('Content-Type', 'application/json');
+        } else if (path.endsWith('.png')) {
+          res.setHeader('Content-Type', 'image/png');
+        } else if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+          res.setHeader('Content-Type', 'image/jpeg');
+        } else if (path.endsWith('.ico')) {
+          res.setHeader('Content-Type', 'image/x-icon');
+        }
+      }
     }));
+    
+    // Handle root path
+    app.get('/', (req, res) => {
+      res.sendFile(path.join(clientPublicPath, 'index.html'));
+    });
   }
   // If neither exists, show error
   else {

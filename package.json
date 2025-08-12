@@ -39,6 +39,7 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "build": "npm install && cd client && npm install && npm run build",
     "heroku-postbuild": "npm run build",
+    "render-build": "cd client && npm install && npm run build",
     "install-client": "cd client && npm install",
     "seed": "node scripts/seedDatabase.js",
     "seed-quick": "node scripts/seedDatabase.js --quick",

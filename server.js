@@ -169,29 +169,69 @@ if (process.env.NODE_ENV === 'production') {
   const clientBuildPath = path.join(__dirname, 'client', 'build');
   console.log('Serving static files from:', clientBuildPath);
   
+  // Check if client directory exists
+  if (!fs.existsSync(path.join(__dirname, 'client'))) {
+    console.error('Client directory not found at:', path.join(__dirname, 'client'));
+    console.log('Current directory contents:', fs.readdirSync(__dirname));
+  }
   // Check if build directory exists
-  if (!fs.existsSync(clientBuildPath)) {
+  else if (!fs.existsSync(clientBuildPath)) {
     console.error('Build directory not found at:', clientBuildPath);
-    console.log('Current directory contents:', fs.readdirSync(path.join(__dirname, 'client')));
+    console.log('Client directory contents:', fs.readdirSync(path.join(__dirname, 'client')));
+    
+    // Try to build the client
+    console.log('Attempting to build client...');
+    try {
+      const { execSync } = require('child_process');
+      execSync('npm run build', { cwd: path.join(__dirname, 'client'), stdio: 'inherit' });
+      console.log('Client build completed successfully');
+    } catch (error) {
+      console.error('Failed to build client:', error);
+    }
   }
   
-  app.use(express.static(clientBuildPath));
-  
-  // Handle React routing, return all requests to React app
-  app.get('*', (req, res) => {
-    const indexPath = path.resolve(clientBuildPath, 'index.html');
-    console.log('Serving index file from:', indexPath);
+  // Only serve static files if the build directory exists
+  if (fs.existsSync(clientBuildPath)) {
+    app.use(express.static(clientBuildPath, {
+      etag: true,
+      lastModified: true,
+      setHeaders: (res, path) => {
+        if (path.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache');
+        } else {
+          res.setHeader('Cache-Control', 'public, max-age=31536000');
+        }
+      }
+    }));
     
-    if (!fs.existsSync(indexPath)) {
-      console.error('Index.html not found at:', indexPath);
-      return res.status(500).json({ 
-        message: 'Frontend build not found',
-        error: `Expected to find frontend build at: ${clientBuildPath}`
+    // Handle React routing, return all requests to React app
+    app.get('*', (req, res) => {
+      const indexPath = path.resolve(clientBuildPath, 'index.html');
+      
+      if (!fs.existsSync(indexPath)) {
+        console.error('Index.html not found at:', indexPath);
+        return res.status(500).json({ 
+          message: 'Frontend build is incomplete',
+          error: `index.html not found in build directory`,
+          buildDirectoryContents: fs.readdirSync(clientBuildPath).join(', ')
+        });
+      }
+      
+      res.sendFile(indexPath);
+    });
+  } else {
+    // If we get here, the build directory doesn't exist
+    app.get('*', (req, res) => {
+      res.status(500).json({
+        message: 'Frontend build failed',
+        error: 'The frontend build directory was not found and could not be generated',
+        instructions: 'Please check the build process and ensure the client builds correctly',
+        buildPath: clientBuildPath,
+        currentDirectory: __dirname,
+        directoryContents: fs.readdirSync(__dirname)
       });
-    }
-    
-    res.sendFile(indexPath);
-  });
+    });
+  }
 }
 
 // Error handling middleware

@@ -139,10 +139,32 @@ app.use('/api/messages', messagesRoutes);
 
 // Serve static files from React app in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/build')));
+  // Set static folder
+  const clientBuildPath = path.join(__dirname, 'client', 'build');
+  console.log('Serving static files from:', clientBuildPath);
   
+  // Check if build directory exists
+  if (!fs.existsSync(clientBuildPath)) {
+    console.error('Build directory not found at:', clientBuildPath);
+    console.log('Current directory contents:', fs.readdirSync(path.join(__dirname, 'client')));
+  }
+  
+  app.use(express.static(clientBuildPath));
+  
+  // Handle React routing, return all requests to React app
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+    const indexPath = path.resolve(clientBuildPath, 'index.html');
+    console.log('Serving index file from:', indexPath);
+    
+    if (!fs.existsSync(indexPath)) {
+      console.error('Index.html not found at:', indexPath);
+      return res.status(500).json({ 
+        message: 'Frontend build not found',
+        error: `Expected to find frontend build at: ${clientBuildPath}`
+      });
+    }
+    
+    res.sendFile(indexPath);
   });
 }
 

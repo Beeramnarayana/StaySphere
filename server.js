@@ -170,29 +170,9 @@ if (process.env.NODE_ENV === 'production') {
   
   console.log('\n📂 Checking for build directory at:', clientBuildPath);
   
-  // Check if build directory exists, if not, try to use client/public
-  if (fs.existsSync(clientBuildPath)) {
-    console.log('✅ Found build directory at:', clientBuildPath);
-    console.log('📂 Build directory contents:', fs.readdirSync(clientBuildPath));
-    
-    // Serve static files from the build directory
-    app.use(express.static(clientBuildPath, {
-      etag: true,
-      lastModified: true,
-      setHeaders: (res, path) => {
-        // Cache static assets for 1 year
-        if (!path.endsWith('.html')) {
-          res.setHeader('Cache-Control', 'public, max-age=31536000');
-        } else {
-          res.setHeader('Cache-Control', 'no-cache');
-        }
-      }
-    }));
-  } 
-  // If build directory doesn't exist, try to serve from client/public
-  else if (fs.existsSync(clientPublicPath)) {
-    console.log('⚠️  Build directory not found, serving from client/public');
-    console.log('📂 Public directory contents:', fs.readdirSync(clientPublicPath));
+  // Serve static files from public directory first (for favicon, manifest, etc.)
+  if (fs.existsSync(clientPublicPath)) {
+    console.log('📂 Serving static files from public directory:', clientPublicPath);
     
     // Serve static files from public directory
     app.use(express.static(clientPublicPath, {
@@ -215,9 +195,38 @@ if (process.env.NODE_ENV === 'production') {
         }
       }
     }));
+  }
+  
+  // Check if build directory exists
+  if (fs.existsSync(clientBuildPath)) {
+    console.log('✅ Found build directory at:', clientBuildPath);
+    console.log('📂 Build directory contents:', fs.readdirSync(clientBuildPath));
     
-    // Handle root path
-    app.get('/', (req, res) => {
+    // Serve static files from the build directory
+    app.use(express.static(clientBuildPath, {
+      etag: true,
+      lastModified: true,
+      setHeaders: (res, path) => {
+        // Cache static assets for 1 year
+        if (!path.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000');
+        } else {
+          res.setHeader('Cache-Control', 'no-cache');
+        }
+      }
+    }));
+    
+    // Handle all other routes by serving index.html
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(clientBuildPath, 'index.html'));
+    });
+  } 
+  // If no build directory, serve from public
+  else if (fs.existsSync(clientPublicPath)) {
+    console.log('⚠️  Build directory not found, falling back to public directory');
+    
+    // Handle all other routes by serving index.html from public
+    app.get('*', (req, res) => {
       res.sendFile(path.join(clientPublicPath, 'index.html'));
     });
   }

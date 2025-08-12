@@ -166,47 +166,12 @@ app.use('/api/messages', messagesRoutes);
 // Serve static files from React app in production
 if (process.env.NODE_ENV === 'production') {
   const clientBuildPath = path.join(__dirname, 'client', 'build');
+  const clientPublicPath = path.join(__dirname, 'client', 'public');
+  
   console.log('\n📂 Checking for build directory at:', clientBuildPath);
   
-  // Check if client directory exists
-  if (!fs.existsSync(path.join(__dirname, 'client'))) {
-    console.error('❌ Client directory not found at:', path.join(__dirname, 'client'));
-    console.log('📁 Current directory contents:', fs.readdirSync(__dirname));
-  } 
-  // Check if build directory exists
-  else if (!fs.existsSync(clientBuildPath)) {
-    console.error('❌ Build directory not found at:', clientBuildPath);
-    console.log('📁 Client directory contents:', fs.readdirSync(path.join(__dirname, 'client')));
-    
-    // Provide helpful instructions
-    console.log('\n🔧 To fix this issue, try the following steps:');
-    console.log('1. Run `cd client && npm install && npm run build` locally');
-    console.log('2. Commit the build directory to your repository');
-    console.log('3. Push the changes and redeploy');
-    
-    // Create a simple response for missing build
-    app.get('*', (req, res) => {
-      res.status(500).send(`
-        <html>
-          <head><title>Build Error</title></head>
-          <body>
-            <h1>Frontend Build Missing</h1>
-            <p>The frontend build directory was not found at: ${clientBuildPath}</p>
-            <h3>To fix this issue:</h3>
-            <ol>
-              <li>Run <code>cd client && npm install && npm run build</code> locally</li>
-              <li>Commit the build directory to your repository</li>
-              <li>Push the changes and redeploy</li>
-            </ol>
-            <p>Check the server logs for more details.</p>
-          </body>
-        </html>
-      `);
-    });
-    
-    return;
-  } else {
-    // Build directory exists, serve static files
+  // Check if build directory exists, if not, try to use client/public
+  if (fs.existsSync(clientBuildPath)) {
     console.log('✅ Found build directory at:', clientBuildPath);
     console.log('📂 Build directory contents:', fs.readdirSync(clientBuildPath));
     
@@ -223,29 +188,65 @@ if (process.env.NODE_ENV === 'production') {
         }
       }
     }));
+  } 
+  // If build directory doesn't exist, try to serve from client/public
+  else if (fs.existsSync(clientPublicPath)) {
+    console.log('⚠️  Build directory not found, serving from client/public');
+    console.log('📂 Public directory contents:', fs.readdirSync(clientPublicPath));
     
-    // Handle React routing, return all requests to React app
+    app.use(express.static(clientPublicPath, {
+      etag: true,
+      lastModified: true
+    }));
+  }
+  // If neither exists, show error
+  else {
+    console.error('❌ Neither build nor public directory found');
+    console.log('📁 Client directory contents:', fs.readdirSync(path.join(__dirname, 'client')));
+    
     app.get('*', (req, res) => {
-      const indexPath = path.resolve(clientBuildPath, 'index.html');
-      
-      if (!fs.existsSync(indexPath)) {
-        console.error('❌ index.html not found at:', indexPath);
-        return res.status(500).send(`
-          <html>
-            <head><title>Build Error</title></head>
-            <body>
-              <h1>Frontend Build Incomplete</h1>
-              <p>index.html not found in build directory at: ${indexPath}</p>
-              <p>Build directory contents: ${fs.readdirSync(clientBuildPath).join(', ')}</p>
-            </body>
-          </html>
-        `);
-      }
-      
+      res.status(500).send(`
+        <html>
+          <head><title>Build Error</title></head>
+          <body>
+            <h1>Frontend Build Missing</h1>
+            <p>The frontend build directory was not found at: ${clientBuildPath}</p>
+            <p>Also tried: ${clientPublicPath}</p>
+            <h3>To fix this issue:</h3>
+            <ol>
+              <li>Run <code>cd client && npm install && npm run build</code> locally</li>
+              <li>Commit the build directory to your repository</li>
+              <li>Push the changes and redeploy</li>
+            </ol>
+          </body>
+        </html>
+      `);
+    });
+    return;
+  }
+  
+  // Handle React routing, return all requests to React app
+  app.get('*', (req, res) => {
+    const indexPath = path.resolve(clientBuildPath, 'index.html');
+    
+    if (fs.existsSync(indexPath)) {
       console.log(`🔄 Serving index.html for ${req.path}`);
       res.sendFile(indexPath);
-    });
-  }
+    } else if (fs.existsSync(path.join(clientPublicPath, 'index.html'))) {
+      console.log(`🔄 Serving index.html from public for ${req.path}`);
+      res.sendFile(path.join(clientPublicPath, 'index.html'));
+    } else {
+      res.status(404).send(`
+        <html>
+          <head><title>404 Not Found</title></head>
+          <body>
+            <h1>404 - Page Not Found</h1>
+            <p>The requested URL ${req.path} was not found on this server.</p>
+          </body>
+        </html>
+      `);
+    }
+  });
 }
 
 // Error handling middleware

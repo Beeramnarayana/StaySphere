@@ -35,11 +35,13 @@ const limiter = rateLimit({
 
 // CORS configuration
 const corsOptions = {
-  origin: 'http://localhost:3000', // Your frontend URL
-  credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://staysphere-3.onrender.com', 'http://localhost:3000']
+    : 'http://localhost:3000',
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+  optionsSuccessStatus: 200
 };
 
 // Add request ID middleware

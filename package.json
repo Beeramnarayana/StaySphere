@@ -33,18 +33,19 @@
     "uuid": "^11.1.0"
   },
   "scripts": {
-    "start": "node server.js",
-    "server": "nodemon server.js",
-    "client": "npm start --prefix client",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "build": "npm run build --prefix client",
-    "install-client": "npm install --prefix client",
-    "seed": "node scripts/seedDatabase.js",
-    "seed-quick": "node scripts/seedDatabase.js --quick",
-    "seed-clear": "node scripts/seedDatabase.js --clear-all"
-  },
+  "start": "node server.js",
+  "server": "nodemon server.js",
+  "client": "npm start --prefix client",
+  "dev": "concurrently \"npm run server\" \"npm run client\"",
+  "build": "cd client && npm install && npm run build && cd ..",
+  "heroku-postbuild": "npm run build",
+  "install-client": "npm install --prefix client",
+  "seed": "node scripts/seedDatabase.js",
+  "seed-quick": "node scripts/seedDatabase.js --quick",
+  "seed-clear": "node scripts/seedDatabase.js --clear-all"
+},
   "devDependencies": {
-    "concurrently": "^8.2.0",
-    "nodemon": "^3.0.1"
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.10"
   }
 }

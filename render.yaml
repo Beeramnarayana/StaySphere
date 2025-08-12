@@ -2,7 +2,21 @@ services:
   - type: web
     name: staysphere
     env: node
-    buildCommand: npm install && npm run build
+    buildCommand: |
+      echo "Starting build process..."
+      echo "Node version: $(node -v)"
+      echo "NPM version: $(npm -v)"
+      
+      # Install root dependencies
+      echo "\n=== Installing root dependencies ==="
+      npm install --legacy-peer-deps
+      
+      # Run the build script
+      echo "\n=== Running build script ==="
+      node client/build.js
+      
+      echo "\n=== Build process completed ==="
+      
     startCommand: npm start
     envVars:
       - key: NODE_ENV

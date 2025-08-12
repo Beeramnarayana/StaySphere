@@ -1,1 +1,1 @@
-web: npm install && npm run render-build && npm start
+web: npm install && npm run build:client && npm start

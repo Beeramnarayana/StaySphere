@@ -170,34 +170,7 @@ if (process.env.NODE_ENV === 'production') {
   
   console.log('\n📂 Checking for build directory at:', clientBuildPath);
   
-  // Serve static files from public directory first (for favicon, manifest, etc.)
-  if (fs.existsSync(clientPublicPath)) {
-    console.log('📂 Serving static files from public directory:', clientPublicPath);
-    
-    // Serve static files from public directory
-    app.use(express.static(clientPublicPath, {
-      etag: true,
-      lastModified: true,
-      setHeaders: (res, path) => {
-        // Set correct content types for common files
-        if (path.endsWith('.js')) {
-          res.setHeader('Content-Type', 'application/javascript');
-        } else if (path.endsWith('.css')) {
-          res.setHeader('Content-Type', 'text/css');
-        } else if (path.endsWith('.json')) {
-          res.setHeader('Content-Type', 'application/json');
-        } else if (path.endsWith('.png')) {
-          res.setHeader('Content-Type', 'image/png');
-        } else if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
-          res.setHeader('Content-Type', 'image/jpeg');
-        } else if (path.endsWith('.ico')) {
-          res.setHeader('Content-Type', 'image/x-icon');
-        }
-      }
-    }));
-  }
-  
-  // Check if build directory exists
+  // Serve static files from build directory if it exists
   if (fs.existsSync(clientBuildPath)) {
     console.log('✅ Found build directory at:', clientBuildPath);
     console.log('📂 Build directory contents:', fs.readdirSync(clientBuildPath));
@@ -223,9 +196,32 @@ if (process.env.NODE_ENV === 'production') {
   } 
   // If no build directory, serve from public
   else if (fs.existsSync(clientPublicPath)) {
-    console.log('⚠️  Build directory not found, falling back to public directory');
+    console.log('⚠️  Build directory not found, serving from public directory');
+    console.log('📂 Public directory contents:', fs.readdirSync(clientPublicPath));
     
-    // Handle all other routes by serving index.html from public
+    // Serve static files from public directory
+    app.use(express.static(clientPublicPath, {
+      etag: true,
+      lastModified: true,
+      setHeaders: (res, path) => {
+        // Set correct content types for common files
+        if (path.endsWith('.js')) {
+          res.setHeader('Content-Type', 'application/javascript');
+        } else if (path.endsWith('.css')) {
+          res.setHeader('Content-Type', 'text/css');
+        } else if (path.endsWith('.json')) {
+          res.setHeader('Content-Type', 'application/json');
+        } else if (path.endsWith('.png')) {
+          res.setHeader('Content-Type', 'image/png');
+        } else if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+          res.setHeader('Content-Type', 'image/jpeg');
+        } else if (path.endsWith('.ico')) {
+          res.setHeader('Content-Type', 'image/x-icon');
+        }
+      }
+    }));
+    
+    // Handle all other routes by serving index.html
     app.get('*', (req, res) => {
       res.sendFile(path.join(clientPublicPath, 'index.html'));
     });
